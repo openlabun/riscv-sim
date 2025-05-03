@@ -4,6 +4,9 @@ import '../styles/Tables.css';
 const RAMtable = ({ memory }) => {
   return (
     <div id="simulation-tables" className='tables-container'>
+      <div className="tabs invisible">
+        <button className='tab-button active'>A</button>
+      </div>
       <table id="ramTable" className='RAMtable' >
         <thead>
           <tr className='values'>

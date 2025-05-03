@@ -101,7 +101,7 @@ table tr:hover {
   
 .RAMtable tbody {
     display: block;
-    max-height: calc(1.6em * 5 + 100px); /* Ajusta si el tamaño de fuente o padding es distinto */
+    max-height: calc(1.6em * 5 + 80px); /* Ajusta si el tamaño de fuente o padding es distinto */
     overflow-y: auto;
   }
   
@@ -122,5 +122,7 @@ table tr:hover {
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
   }
-
+.invisible{
+    opacity: 0;
+}
 
