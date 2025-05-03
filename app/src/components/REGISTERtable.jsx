@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import '../styles/Tables.css';
 
-const REGISTERtable = ({ registers }) => {
+const REGISTERtable = ({ registers, highlightedRegs = [] }) => {
   const groupedRegisters = {};
 
   // Agrupar registros por su primer carácter
@@ -39,7 +39,7 @@ const REGISTERtable = ({ registers }) => {
         </thead>
         <tbody>
           {Object.entries(groupedRegisters[activeTab] || {}).map(([reg, val]) => (
-            <tr key={reg} className="values">
+            <tr key={reg} className={`values ${highlightedRegs.includes(reg) ? 'highlighted' : ''}`}>
               <td>{reg}</td>
               <td>{`0x${val.toString(16).toUpperCase()}`}</td>
             </tr>

@@ -122,6 +122,16 @@ table tr:hover {
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
   }
+
+  tr.highlighted {
+    background-color: #ffd6d6 !important; /* tono suave de amarillo */
+    transition: background-color 0.3s ease;
+  }
+  
+  tr.highlighted td {
+    font-weight: bold;
+    color: #333;
+  }
 .invisible{
     opacity: 0;
 }

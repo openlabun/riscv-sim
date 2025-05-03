@@ -29,6 +29,8 @@ const MIPS = () => {
   const [memory, setMemory] = useState(initialMemory);
   const [PC, setPC] = useState(0);
   const [history, setHistory] = useState([]);
+  const [highlightedRegs, setHighlightedRegs] = useState([]);
+  const [highlightedAddrs, setHighlightedAddrs] = useState([]);
   const instructions = mipsInput.trim().split("\n");
   const currentInstruction = instructions[PC] || '';
 
@@ -60,10 +62,10 @@ const MIPS = () => {
 
   updateTables(newRegisters, newMemory);
   };
-
   const stepMIPS = () => {
     const instructions = mipsInput.trim().split("\n");
     if (PC >= instructions.length) return;
+  
     setHistory([
       ...history,
       { PC, registers: { ...registers }, memory: { ...memory } },
@@ -71,19 +73,19 @@ const MIPS = () => {
   
     const newRegisters = { ...registers };
     const newMemory = { ...memory };
-    const newPC = executeMIPSInstruction(instructions[PC], newRegisters, newMemory, PC);
+    const currentInst = instructions[PC];
   
-    if (newPC !== undefined) {
-      console.log(newPC);
-      setPC(newPC);
-
-    }else {
-      setPC(PC + 1);
-    }
+    const [highlightRegs, highlightAddrs, newPC] = executeMIPSInstructionWithHighlight(
+      currentInst, newRegisters, newMemory, PC
+    );
   
+    setHighlightedRegs(highlightRegs);
+    setHighlightedAddrs(highlightAddrs);
+  
+    setPC(newPC !== undefined ? newPC : PC + 1);
     updateTables(newRegisters, newMemory);
   };
-
+  
   const stepBackMIPS = () => {
     if (PC === 0) return;
 
@@ -125,7 +127,7 @@ const MIPS = () => {
         </button>
       </div>
       <div className="bottom-section">
-        <RAMtable memory={memory} />
+        <RAMtable memory={memory} highlightedAddrs={highlightedAddrs} />
         <Debugger
           PC={PC}
           simulateMIPS={simulateMIPS}
@@ -134,11 +136,73 @@ const MIPS = () => {
           stepBackMIPS={stepBackMIPS}
           resetMIPS={resetMIPS}
         />
-        <REGISTERtable registers={registers} />
+        <REGISTERtable registers={registers} highlightedRegs={highlightedRegs} />
       </div>
     </div>
   );
 };
+
+function executeMIPSInstructionWithHighlight(instruction, registers, memory, PC) {
+  const [op, ...operands] = instruction.split(" ");
+  let highlightRegs = [];
+  let highlightAddrs = [];
+
+  switch (op) {
+    case "add":
+    case "sub":
+    case "slt":
+    case "and":
+    case "or": {
+      const [rd, rs, rt] = operands;
+      registers[rd] = op === "add" ? registers[rs] + registers[rt]
+                    : op === "sub" ? registers[rs] - registers[rt]
+                    : op === "slt" ? (registers[rs] < registers[rt] ? 1 : 0)
+                    : op === "and" ? (registers[rs] & registers[rt])
+                    : registers[rs] | registers[rt];
+      highlightRegs = [rd, rs, rt];
+      break;
+    }
+    case "addi": {
+      const [rd, rs, immediate] = operands;
+      registers[rd] = registers[rs] + parseInt(immediate);
+      highlightRegs = [rd, rs];
+      break;
+    }
+    case "lw": {
+      const [rt, rs, offset] = operands;
+      const addr = registers[rs] + parseInt(offset);
+      if (memory.hasOwnProperty(addr)) {
+        registers[rt] = memory[addr];
+        highlightAddrs.push(addr);
+        highlightRegs = [rt, rs];
+      }
+      break;
+    }
+    case "sw": {
+      const [rt, rs, offset] = operands;
+      const addr = registers[rs] + parseInt(offset);
+      memory[addr] = registers[rt];
+      highlightAddrs.push(addr);
+      highlightRegs = [rt, rs];
+      break;
+    }
+    case "j": {
+      return [[], [], parseInt(operands[0])];
+    }
+    case "beq":
+    case "bne": {
+      const [rs, rt, offset] = operands;
+      const condition = op === "beq" ? registers[rs] === registers[rt] : registers[rs] !== registers[rt];
+      highlightRegs = [rs, rt];
+      if (condition) return [highlightRegs, [], PC + parseInt(offset)];
+      break;
+    }
+    default:
+      break;
+  }
+
+  return [highlightRegs, highlightAddrs];
+}
 
 function executeMIPSInstruction(instruction, registers, memory, PC) {
   // Split MIPS instruction into operation and operands
