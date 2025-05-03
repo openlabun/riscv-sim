@@ -10,6 +10,7 @@
     flex: 1;
 }
 
+/* Estilo base general para todas las tablas */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -17,22 +18,29 @@ table {
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+    font-size: 0.95rem;
 }
 
-table th, table td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: center;
-    font-size: 1rem;
-    color: #333;
-}
-
+/* Encabezados */
 table th {
     background-color: #47a7be;
     color: white;
     font-weight: bold;
+    padding: 12px;
+    text-align: center;
 }
 
+/* Celdas */
+table td {
+    padding: 12px;
+    text-align: center;
+    font-size: 1rem;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+/* Zebra y hover */
 table tr:nth-child(even) {
     background-color: #f2f2f2;
 }
@@ -41,19 +49,78 @@ table tr:hover {
     background-color: #e9e9e9;
 }
 
-.RAMtable, .REGISTERtable {
-    width: auto;
-    margin: 0 auto;
-}
 
-.RAMtable, .REGISTERtable {
+.REGISTERtable tbody {
     display: block;
-    max-height: 35rem;
+    max-height: calc(1.6em * 5 + 100px); /* Ajusta si el tamaño de fuente o padding es distinto */
     overflow-y: auto;
-}
-
-.RAMtable thead, .REGISTERtable thead, .RAMtable tbody tr, .REGISTERtable tbody tr {
+  }
+  
+  /* Para mantener alineado el header con el body con display block */
+  .REGISTERtable thead,
+  .REGISTERtable tbody tr {
     display: table;
     width: 100%;
     table-layout: fixed;
-}
+  }
+  
+  /* Opcional: mejora visual del scroll */
+  .REGISTERtable tbody::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .REGISTERtable tbody::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+
+
+.REGISTERtable tbody {
+    display: block;
+    max-height: calc(1.6em * 5 + 80px); /* Ajusta si el tamaño de fuente o padding es distinto */
+    overflow-y: auto;
+  }
+  
+  /* Para mantener alineado el header con el body con display block */
+  .REGISTERtable thead,
+  .REGISTERtable tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+  
+  /* Opcional: mejora visual del scroll */
+  .REGISTERtable tbody::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .REGISTERtable tbody::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+  
+.RAMtable tbody {
+    display: block;
+    max-height: calc(1.6em * 5 + 100px); /* Ajusta si el tamaño de fuente o padding es distinto */
+    overflow-y: auto;
+  }
+  
+  /* Para mantener alineado el header con el body con display block */
+  .RAMtable thead,
+  .RAMtable tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+  
+  /* Opcional: mejora visual del scroll */
+  .RAMtable tbody::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .RAMtable tbody::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+
+

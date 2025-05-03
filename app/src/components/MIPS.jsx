@@ -106,7 +106,7 @@ const MIPS = () => {
   };
 
   return (
-    <div>
+    <div className="mips-container">
       <div className="row-container">
         <DropArea setMipsInput={setMipsInput} setHexInput={setHexInput} />
         <textarea
@@ -124,7 +124,6 @@ const MIPS = () => {
           Simulate MIPS
         </button>
       </div>
-      <CircuitImage currentInstruction={currentInstruction} registers={registers} />
       <div className="bottom-section">
         <RAMtable memory={memory} />
         <Debugger
@@ -144,6 +143,9 @@ const MIPS = () => {
 function executeMIPSInstruction(instruction, registers, memory, PC) {
   // Split MIPS instruction into operation and operands
   const [op, ...operands] = instruction.split(" ");
+  console.log("Executing instruction:", instruction);
+  console.log("Operands:", operands);
+  console.log("Op", op);
   // Implement execution logic for each MIPS operation
   switch (op) {
     case "add": {
@@ -189,6 +191,7 @@ function executeMIPSInstruction(instruction, registers, memory, PC) {
     case "sw": {
       const [rt, rs, offset] = operands;
       const address = registers[rs] + parseInt(offset);
+      console.log(memory);
       memory[address] = registers[rt];
       break;
     }
