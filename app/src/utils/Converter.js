@@ -242,167 +242,181 @@ export function translateInstructionToMIPS(hexInstruction) {
 function hexToBinary(hex) {
     return parseInt(hex, 16).toString(2).padStart(32, '0');
 }
-
 export function translateInstructionToMIPS(instruction) {
-    // Convertir el hexadecimal a binario sin revertir la cadena, solo cambiamos el índice de acceso
+    const regMap = {
+        "00000": "zero", "00001": "at",  "00010": "v0",  "00011": "v1",
+        "00100": "a0",   "00101": "a1",  "00110": "a2",  "00111": "a3",
+        "01000": "t0",   "01001": "t1",  "01010": "t2", "01011": "t3",
+        "01100": "t4",  "01101": "t5", "01110": "t6", "01111": "t7",
+        "10000": "s0",  "10001": "s1", "10010": "s2", "10011": "s3",
+        "10100": "s4",  "10101": "s5", "10110": "s6", "10111": "s7",
+        "11000": "t8",  "11001": "t9", "11010": "k0", "11011": "k1",
+        "11100": "gp",  "11101": "sp", "11110": "fp", "11111": "ra",
+    };
+
+    // Convertir el hexadecimal a binario
     const binary = parseInt(instruction, 16).toString(2).padStart(32, '0');
-    console.log("Binary", binary)
-    // Obtener los campos de acuerdo al formato RISC-V, usando los índices al revés
-    const opcode  = binary.slice(25, 32);        // bits 6–0 (lsb)
-    const rd      = parseInt(binary.slice(20, 25), 2); // bits 11–7
-    const funct3 = binary.slice(31 - 14, 32 - 12);        // bits 14–12
-    console.log("funct3",funct3)
-    const rs1     = parseInt(binary.slice(12, 17), 2); // bits 19–15
-    const rs2     = parseInt(binary.slice(7, 12), 2);  // bits 24–20
-    const funct7  = binary.slice(0,7);          // bits 31–25
-    console.log("funct7", funct7)
+    
+    // Obtener los campos de acuerdo al formato RISC-V
+    const opcode = binary.slice(25, 32);        // bits 6–0 (lsb)
+    const rd = binary.slice(20, 25);            // bits 11–7
+    const funct3 = binary.slice(17, 20);        // bits 14–12
+    const rs1 = binary.slice(12, 17);           // bits 19–15
+    const rs2 = binary.slice(7, 12);            // bits 24–20
+    const funct7 = binary.slice(0, 7);          // bits 31–25
     const immI = parseInt(binary.slice(0, 12), 2); // Inmediato para instrucciones tipo I
     const signedImm = immI >= 0x800 ? immI - 0x1000 : immI;
     const immS = parseInt(binary.slice(7, 12) + binary.slice(25, 32), 2); // Inmediato para instrucciones tipo S
-
     const immB = parseInt(binary.slice(8, 12) + binary.slice(25, 32) + binary.slice(7, 8), 2); // Inmediato para instrucciones tipo B
-    
     const immU = parseInt(binary.slice(12, 32), 2); // Inmediato para instrucciones tipo U
     const immJ = parseInt(binary.slice(1, 11) + binary.slice(20, 32) + binary.slice(11, 12) + binary.slice(0, 1), 2); // Inmediato para instrucciones tipo J
-  
+
+    // Usamos el regMap para obtener los registros por su código binario
+    const reg1 = regMap[rs1];
+    const reg2 = regMap[rs2];
+    const regDest = regMap[rd];
+
+    // Verificación simple para asegurarnos de que los registros son válidos
+    if (!reg1 || !reg2 || !regDest) {
+        return 'Error: Registros no encontrados';
+    }
+
     // Interpretar las instrucciones según el opcode
     switch (opcode) {
-      case '0110011': // R-type (operaciones aritméticas)
-        if (funct3 === '000' && funct7 === '0000000') {
-          return `add x${rd}, x${rs1}, x${rs2}`;
-        }
-        if (funct3 === '000' && funct7 === '0100000') {
-          return `sub x${rd}, x${rs1}, x${rs2}`;
-        }
-        if (funct3 === '001' && funct7 === '0000000') {
-          return `sll x${rd}, x${rs1}, x${rs2}`;
-        }
-        if (funct3 === '010' && funct7 === '0000000') {
-          return `slt x${rd}, x${rs1}, x${rs2}`;
-        }
-        if (funct3 === '011' && funct7 === '0000000') {
-          return `sltu x${rd}, x${rs1}, x${rs2}`;
-        }
-        if (funct3 === '100' && funct7 === '0000000') {
-          return `xor x${rd}, x${rs1}, x${rs2}`;
-        }
-        if (funct3 === '101' && funct7 === '0000000') {
-          return `srl x${rd}, x${rs1}, x${rs2}`;
-        }
-        if (funct3 === '101' && funct7 === '0100000') {
-          return `sra x${rd}, x${rs1}, x${rs2}`;
-        }
-        if (funct3 === '110' && funct7 === '0000000') {
-          return `or x${rd}, x${rs1}, x${rs2}`;
-        }
-        if (funct3 === '111' && funct7 === '0000000') {
-          return `and x${rd}, x${rs1}, x${rs2}`;
-        }
-        break;
-      
-      case '0000011': // I-type (load)
-        if (funct3 === '010') {
-          return `lw x${rd}, ${signedImm} (x${rs1})`;
-        }
-        if (funct3 === '000') {
-          return `lb x${rd}, ${signedImm} (x${rs1})`;
-        }
-        if (funct3 === '001') {
-          return `lh x${rd}, ${signedImm} (x${rs1})`;
-        }
-        if (funct3 === '100') {
-          return `lbu x${rd}, ${signedImm} (x${rs1})`;
-        }
-        if (funct3 === '101') {
-          return `lhu x${rd}, ${signedImm} (x${rs1})`;
-        }
-        break;
+        case '0110011': // R-type (operaciones aritméticas)
+            if (funct3 === '000' && funct7 === '0000000') {
+                return `add ${regDest}, ${reg1}, ${reg2}`;
+            }
+            if (funct3 === '000' && funct7 === '0100000') {
+                return `sub ${regDest}, ${reg1}, ${reg2}`;
+            }
+            if (funct3 === '001' && funct7 === '0000000') {
+                return `sll ${regDest}, ${reg1}, ${reg2}`;
+            }
+            if (funct3 === '010' && funct7 === '0000000') {
+                return `slt ${regDest}, ${reg1}, ${reg2}`;
+            }
+            if (funct3 === '011' && funct7 === '0000000') {
+                return `sltu ${regDest}, ${reg1}, ${reg2}`;
+            }
+            if (funct3 === '100' && funct7 === '0000000') {
+                return `xor ${regDest}, ${reg1}, ${reg2}`;
+            }
+            if (funct3 === '101' && funct7 === '0000000') {
+                return `srl ${regDest}, ${reg1}, ${reg2}`;
+            }
+            if (funct3 === '101' && funct7 === '0100000') {
+                return `sra ${regDest}, ${reg1}, ${reg2}`;
+            }
+            if (funct3 === '110' && funct7 === '0000000') {
+                return `or ${regDest}, ${reg1}, ${reg2}`;
+            }
+            if (funct3 === '111' && funct7 === '0000000') {
+                return `and ${regDest}, ${reg1}, ${reg2}`;
+            }
+            break;
 
-    case '0010011': // I-type (arithmético)
-        if (funct3 === '000') {
-          return `addi x${rd}, x${rs1}, ${signedImm}`;
-        }
-        if (funct3 === '010') {
-          return `slti x${rd}, x${rs1}, ${signedImm}`;
-        }
-        if (funct3 === '011') {
-          return `sltiu x${rd}, x${rs1}, ${signedImm}`;
-        }
-        if (funct3 === '100') {
-          return `xori x${rd}, x${rs1}, ${signedImm}`;
-        }
-        if (funct3 === '110') {
-          return `ori x${rd}, x${rs1}, ${signedImm}`;
-        }
-        if (funct3 === '111') {
-          return `andi x${rd}, x${rs1}, ${signedImm}`;
-        }
-        if (funct3 === '001') {
-          return `slli x${rd}, x${rs1}, ${signedImm}`;
-        }
-        if (funct3 === '101') {
-          if (funct7 === '0000000') {
-            return `srli x${rd}, x${rs1}, ${signedImm}`;
-          }
-          if (funct7 === '0100000') {
-            return `srai x${rd}, x${rs1}, ${signedImm}`;
-          }
-        }
-        break;
-      
-  
-      case '1100011': // B-type (branch)
-        if (funct3 === '000') {
-          return `beq x${rs1}, x${rs2}, ${SignedImmB}`;
-        }
-        if (funct3 === '001') {
-          return `bne x${rs1}, x${rs2}, ${SignedImmB}`;
-        }
-        if (funct3 === '100') {
-          return `blt x${rs1}, x${rs2}, ${SignedImmB}`;
-        }
-        if (funct3 === '101') {
-          return `bge x${rs1}, x${rs2}, ${SignedImmB}`;
-        }
-        if (funct3 === '110') {
-          return `bltu x${rs1}, x${rs2}, ${SignedImmB}`;;
-        }
-        if (funct3 === '111') {
-          return `bgeu x${rs1}, x${rs2}, ${SignedImmB}`;;
-        }
-        break;
-  
-      case '0100011': // S-type (store)
-        if (funct3 === '010') {
-          return `sw x${rs2}, ${immS} (x${rs1})`;
-        }
-        if (funct3 === '000') {
-          return `sb x${rs2}, ${immS} (x${rs1})`;
-        }
-        if (funct3 === '001') {
-          return `sh x${rs2}, ${immS} (x${rs1})`;
-        }
-        break;
-  
-      case '1101111': // J-type (jal)
-        return `jal x${rd}, ${immJ}`;
-      
-      case '1100111': // I-type (jalr)
-        return `jalr x${rd}, ${immI} (x${rs1})`;
-  
-      case '0110111': // U-type (lui)
-        return `lui x${rd}, ${immU}`;
-  
-      case '0010111': // U-type (auipc)
-        return `auipc x${rd}, ${immU}`;
-      
-      case '0000000': // NOP (instrucción no válida, 0x00000000)
-        return 'nop';
-      
-      default:
-        return 'Instrucción desconocida';
+        case '0000011': // I-type (load)
+            if (funct3 === '010') {
+                return `lw ${regDest}, ${signedImm} (${reg1})`;
+            }
+            if (funct3 === '000') {
+                return `lb ${regDest}, ${signedImm} (${reg1})`;
+            }
+            if (funct3 === '001') {
+                return `lh ${regDest}, ${signedImm} (${reg1})`;
+            }
+            if (funct3 === '100') {
+                return `lbu ${regDest}, ${signedImm} (${reg1})`;
+            }
+            if (funct3 === '101') {
+                return `lhu ${regDest}, ${signedImm} (${reg1})`;
+            }
+            break;
+
+        case '0010011': // I-type (arithmético)
+            if (funct3 === '000') {
+                return `addi ${regDest}, ${reg1}, ${signedImm}`;
+            }
+            if (funct3 === '010') {
+                return `slti ${regDest}, ${reg1}, ${signedImm}`;
+            }
+            if (funct3 === '011') {
+                return `sltiu ${regDest}, ${reg1}, ${signedImm}`;
+            }
+            if (funct3 === '100') {
+                return `xori ${regDest}, ${reg1}, ${signedImm}`;
+            }
+            if (funct3 === '110') {
+                return `ori ${regDest}, ${reg1}, ${signedImm}`;
+            }
+            if (funct3 === '111') {
+                return `andi ${regDest}, ${reg1}, ${signedImm}`;
+            }
+            if (funct3 === '001') {
+                return `slli ${regDest}, ${reg1}, ${signedImm}`;
+            }
+            if (funct3 === '101') {
+                if (funct7 === '0000000') {
+                    return `srli ${regDest}, ${reg1}, ${signedImm}`;
+                }
+                if (funct7 === '0100000') {
+                    return `srai ${regDest}, ${reg1}, ${signedImm}`;
+                }
+            }
+            break;
+
+        case '1100011': // B-type (branch)
+            if (funct3 === '000') {
+                return `beq ${reg1}, ${reg2}, ${immB}`;
+            }
+            if (funct3 === '001') {
+                return `bne ${reg1}, ${reg2}, ${immB}`;
+            }
+            if (funct3 === '100') {
+                return `blt ${reg1}, ${reg2}, ${immB}`;
+            }
+            if (funct3 === '101') {
+                return `bge ${reg1}, ${reg2}, ${immB}`;
+            }
+            if (funct3 === '110') {
+                return `bltu ${reg1}, ${reg2}, ${immB}`;
+            }
+            if (funct3 === '111') {
+                return `bgeu ${reg1}, ${reg2}, ${immB}`;
+            }
+            break;
+
+        case '0100011': // S-type (store)
+            if (funct3 === '010') {
+                return `sw ${reg2}, ${immS} (${reg1})`;
+            }
+            if (funct3 === '000') {
+                return `sb ${reg2}, ${immS} (${reg1})`;
+            }
+            if (funct3 === '001') {
+                return `sh ${reg2}, ${immS} (${reg1})`;
+            }
+            break;
+
+        case '1101111': // J-type (jal)
+            return `jal ${regDest}, ${immJ}`;
+
+        case '1100111': // I-type (jalr)
+            return `jalr ${regDest}, ${immI} (${reg1})`;
+
+        case '0110111': // U-type (lui)
+            return `lui ${regDest}, ${immU}`;
+
+        case '0010111': // U-type (auipc)
+            return `auipc ${regDest}, ${immU}`;
+
+        case '0000000': // NOP (instrucción no válida, 0x00000000)
+            return 'nop';
+
+        default:
+            return 'Instrucción desconocida';
     }
-  
+
     return 'Instrucción no soportada';
-  }
-    
+}
