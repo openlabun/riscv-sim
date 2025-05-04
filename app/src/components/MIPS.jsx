@@ -43,25 +43,34 @@ const MIPS = () => {
     document
       .getElementById("simulation-tables")
       .scrollIntoView({ behavior: "smooth" });
-
+  
     const hexInstructions = mipsInput.trim().split("\n");
     resetMIPS();
-
+  
     const newRegisters = { ...initialRegisters };
     const newMemory = { ...initialMemory };
     let pc = 0;
-
-    while (pc < hexInstructions.length) {
-      const newPC = executeMIPSInstruction(hexInstructions[pc], newRegisters, newMemory, pc);
-      if (newPC !== undefined) {
-        pc = newPC;
-      } else {
-        pc += 1;
-      }
+  
+    const MAX_CYCLES = 1000;
+    let cycleCount = 0;
+  
+    while (pc < hexInstructions.length && cycleCount < MAX_CYCLES) {
+      const newPC = executeRISCVInstruction(hexInstructions[pc], newRegisters, newMemory, pc);
+      pc = newPC !== undefined ? newPC : pc + 1;
+      cycleCount++;
     }
-
-  updateTables(newRegisters, newMemory);
+  
+    if (cycleCount >= MAX_CYCLES) {
+      console.error("❌ Se alcanzó el número máximo de ciclos. Posible bucle infinito.");
+      alert("❌ Límite de ciclos alcanzado. Revisa tu código: puede haber un bucle infinito.");
+    } else {
+      console.log("✅ Simulación completada sin bucles infinitos.");
+      alert("✅ Simulación completada");
+    }
+  
+    updateTables(newRegisters, newMemory);
   };
+    
   const stepMIPS = () => {
     const instructions = mipsInput.trim().split("\n");
     if (PC >= instructions.length) return;
@@ -75,7 +84,7 @@ const MIPS = () => {
     const newMemory = { ...memory };
     const currentInst = instructions[PC];
   
-    const [highlightRegs, highlightAddrs, newPC] = executeMIPSInstructionWithHighlight(
+    const [highlightRegs, highlightAddrs, newPC] = executeRISCVInstructionWithHighlight(
       currentInst, newRegisters, newMemory, PC
     );
   
@@ -144,146 +153,317 @@ const MIPS = () => {
   );
 };
 
-function executeMIPSInstructionWithHighlight(instruction, registers, memory, PC) {
-  const [op, ...operands] = instruction.split(" ");
+function executeRISCVInstructionWithHighlight(instruction, registers, memory, PC) {
+  const trimmed = instruction.trim().split(/[\s,()]+/).filter(Boolean);
+  const [op, ...args] = trimmed;
+
+  const getReg = (name) => registers[name] || 0;
+  const setReg = (name, value) => { if (name !== "x0") registers[name] = value | 0; };
+  const parseImm = (val) => parseInt(val, 10);
+
   let highlightRegs = [];
   let highlightAddrs = [];
 
   switch (op) {
+    // Tipo R
     case "add":
     case "sub":
+    case "sll":
     case "slt":
-    case "and":
-    case "or": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = op === "add" ? registers[rs] + registers[rt]
-                    : op === "sub" ? registers[rs] - registers[rt]
-                    : op === "slt" ? (registers[rs] < registers[rt] ? 1 : 0)
-                    : op === "and" ? (registers[rs] & registers[rt])
-                    : registers[rs] | registers[rt];
-      highlightRegs = [rd, rs, rt];
+    case "xor":
+    case "srl":
+    case "sra":
+    case "or":
+    case "and": {
+      const [rd, rs1, rs2] = args;
+      const a = getReg(rs1), b = getReg(rs2);
+      const result = {
+        add: a + b,
+        sub: a - b,
+        sll: a << (b & 0x1F),
+        slt: a < b ? 1 : 0,
+        xor: a ^ b,
+        srl: a >>> (b & 0x1F),
+        sra: a >> (b & 0x1F),
+        or:  a | b,
+        and: a & b,
+      }[op];
+      setReg(rd, result);
+      highlightRegs = [rd, rs1, rs2];
       break;
     }
-    case "addi": {
-      const [rd, rs, immediate] = operands;
-      registers[rd] = registers[rs] + parseInt(immediate);
-      highlightRegs = [rd, rs];
-      break;
-    }
-    case "lw": {
-      const [rt, rs, offset] = operands;
-      const addr = registers[rs] + parseInt(offset);
-      if (memory.hasOwnProperty(addr)) {
-        registers[rt] = memory[addr];
-        highlightAddrs.push(addr);
-        highlightRegs = [rt, rs];
-      }
-      break;
-    }
-    case "sw": {
-      const [rt, rs, offset] = operands;
-      const addr = registers[rs] + parseInt(offset);
-      memory[addr] = registers[rt];
-      highlightAddrs.push(addr);
-      highlightRegs = [rt, rs];
-      break;
-    }
-    case "j": {
-      return [[], [], parseInt(operands[0])];
-    }
-    case "beq":
-    case "bne": {
-      const [rs, rt, offset] = operands;
-      const condition = op === "beq" ? registers[rs] === registers[rt] : registers[rs] !== registers[rt];
-      highlightRegs = [rs, rt];
-      if (condition) return [highlightRegs, [], PC + parseInt(offset)];
-      break;
-    }
-    default:
-      break;
-  }
 
-  return [highlightRegs, highlightAddrs];
+    // Tipo I
+    case "addi":
+    case "slti":
+    case "xori":
+    case "ori":
+    case "andi":
+    case "slli":
+    case "srli":
+    case "srai": {
+      const [rd, rs1, imm] = args;
+      const a = getReg(rs1), i = parseImm(imm);
+      const result = {
+        addi: a + i,
+        slti: a < i ? 1 : 0,
+        xori: a ^ i,
+        ori:  a | i,
+        andi: a & i,
+        slli: a << (i & 0x1F),
+        srli: a >>> (i & 0x1F),
+        srai: a >> (i & 0x1F),
+      }[op];
+      setReg(rd, result);
+      highlightRegs = [rd, rs1];
+      break;
+    }
+
+    case "lb":
+    case "lh":
+    case "lw":
+    case "lbu":
+    case "lhu": {
+      const [rd, offset, rs1] = args;
+      const addr = getReg(rs1) + parseImm(offset);
+      let val = memory[addr] || 0;
+      if (op === "lb")  val = (val << 24) >> 24;
+      if (op === "lh")  val = (val << 16) >> 16;
+      if (op === "lbu") val = val & 0xFF;
+      if (op === "lhu") val = val & 0xFFFF;
+      setReg(rd, val);
+      highlightRegs = [rd, rs1];
+      highlightAddrs.push(addr);
+      break;
+    }
+
+    // Tipo S
+    case "sb":
+    case "sh":
+    case "sw": {
+      const [rs2, offset, rs1] = args;
+      const addr = getReg(rs1) + parseImm(offset);
+      const val = getReg(rs2);
+      memory[addr] = val & {
+        sb: 0xFF,
+        sh: 0xFFFF,
+        sw: 0xFFFFFFFF
+      }[op];
+      highlightRegs = [rs1, rs2];
+      highlightAddrs.push(addr);
+      break;
+    }
+
+    // Tipo B
+    case "beq":
+    case "bne":
+    case "blt":
+    case "bge":
+    case "bltu":
+    case "bgeu": {
+      const [rs1, rs2, offset] = args;
+      const a = getReg(rs1), b = getReg(rs2), i = parseImm(offset);
+      const cond = {
+        beq: a === b,
+        bne: a !== b,
+        blt: a < b,
+        bge: a >= b,
+        bltu: (a >>> 0) < (b >>> 0),
+        bgeu: (a >>> 0) >= (b >>> 0),
+      }[op];
+      highlightRegs = [rs1, rs2];
+      if (cond) return [highlightRegs, [], PC + i];
+      break;
+    }
+
+    // Tipo U
+    case "lui": {
+      const [rd, imm] = args;
+      setReg(rd, parseImm(imm) << 12);
+      highlightRegs = [rd];
+      break;
+    }
+    case "auipc": {
+      const [rd, imm] = args;
+      setReg(rd, PC + (parseImm(imm) << 12));
+      highlightRegs = [rd];
+      break;
+    }
+
+    // Tipo J
+    case "jal": {
+      const [rd, offset] = args;
+      setReg(rd, PC + 1);
+      highlightRegs = [rd];
+      return [highlightRegs, [], PC + parseImm(offset)];
+    }
+    case "jalr": {
+      const [rd, rs1, imm] = args;
+      const target = (getReg(rs1) + parseImm(imm)) & ~1;
+      setReg(rd, PC + 1);
+      highlightRegs = [rd, rs1];
+      return [highlightRegs, [], target];
+    }
+
+    case "nop":
+      break;
+
+    default:
+      console.error("Unsupported instruction:", instruction);
+  }
+  console.log(`PC ${PC}: ${instruction} , rs1: ${args[1]} = ${getReg(args[1])}, rs2: ${args[2]} = ${getReg(args[2])}`);
+  return [highlightRegs, highlightAddrs, PC + 1];
 }
 
-function executeMIPSInstruction(instruction, registers, memory, PC) {
-  // Split MIPS instruction into operation and operands
-  const [op, ...operands] = instruction.split(" ");
-  console.log("Executing instruction:", instruction);
-  console.log("Operands:", operands);
-  console.log("Op", op);
-  // Implement execution logic for each MIPS operation
+
+function executeRISCVInstruction(instruction, registers, memory, PC) {
+  const trimmed = instruction.trim().split(/[\s,()]+/).filter(Boolean);
+  const [op, ...args] = trimmed;
+
+  const getReg = (name) => registers[name] || 0;
+  const setReg = (name, value) => { if (name !== "x0") registers[name] = value | 0; };
+  const parseImm = (val) => parseInt(val, 10);
+
+  console.log(`PC ${PC}: ${instruction}`);
+
   switch (op) {
-    case "add": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = registers[rs] + registers[rt];
-      break;
-    }
-    case "sub": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = registers[rs] - registers[rt];
-      break;
-    }
-    case "slt": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = registers[rs] < registers[rt] ? 1 : 0;
-      break;
-    }
+    // Tipo R
+    case "add":
+    case "sub":
+    case "sll":
+    case "slt":
+    case "xor":
+    case "srl":
+    case "sra":
+    case "or":
     case "and": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = registers[rs] & registers[rt];
+      const [rd, rs1, rs2] = args;
+      const a = getReg(rs1), b = getReg(rs2);
+      const result = {
+        add: a + b,
+        sub: a - b,
+        sll: a << (b & 0x1F),
+        slt: a < b ? 1 : 0,
+        xor: a ^ b,
+        srl: a >>> (b & 0x1F),
+        sra: a >> (b & 0x1F),
+        or:  a | b,
+        and: a & b,
+      }[op];
+      setReg(rd, result);
       break;
     }
-    case "or": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = registers[rs] | registers[rt];
+
+    // Tipo I
+    case "addi":
+    case "slti":
+    case "xori":
+    case "ori":
+    case "andi":
+    case "slli":
+    case "srli":
+    case "srai": {
+      const [rd, rs1, imm] = args;
+      const a = getReg(rs1), i = parseImm(imm);
+      const result = {
+        addi: a + i,
+        slti: a < i ? 1 : 0,
+        xori: a ^ i,
+        ori:  a | i,
+        andi: a & i,
+        slli: a << (i & 0x1F),
+        srli: a >>> (i & 0x1F),
+        srai: a >> (i & 0x1F),
+      }[op];
+      setReg(rd, result);
       break;
     }
-    case "addi": {
-      const [rd, rs, immediate] = operands;
-      registers[rd] = registers[rs] + parseInt(immediate);
+
+    case "lb":
+    case "lh":
+    case "lw":
+    case "lbu":
+    case "lhu": {
+      const [rd, offset, rs1] = args;
+      const addr = getReg(rs1) + parseImm(offset);
+      let val = memory[addr] || 0;
+      if (op === "lb")  val = (val << 24) >> 24;
+      if (op === "lh")  val = (val << 16) >> 16;
+      if (op === "lbu") val = val & 0xFF;
+      if (op === "lhu") val = val & 0xFFFF;
+      setReg(rd, val);
       break;
     }
-    case "lw": {
-      const [rt, rs, offset] = operands;
-      const address = registers[rs] + parseInt(offset);
-      if (memory.hasOwnProperty(address)) {
-        registers[rt] = memory[address];
-      } else {
-        console.error("Memory address not found:", address);
-      }
-      break;
-    }
+
+    // Tipo S
+    case "sb":
+    case "sh":
     case "sw": {
-      const [rt, rs, offset] = operands;
-      const address = registers[rs] + parseInt(offset);
-      console.log(memory);
-      memory[address] = registers[rt];
+      const [rs2, offset, rs1] = args;
+      const addr = getReg(rs1) + parseImm(offset);
+      const val = getReg(rs2);
+      memory[addr] = val & {
+        sb: 0xFF,
+        sh: 0xFFFF,
+        sw: 0xFFFFFFFF
+      }[op];
       break;
     }
-    case "j": {
-      const [address] = operands;
-      return parseInt(address); 
-    }
-    case "beq": {
-      const [rs, rt, offset] = operands;
-      if (registers[rs] === registers[rt]) {
-        return PC + parseInt(offset);
-      }
+
+    // Tipo B
+    case "beq":
+    case "bne":
+    case "blt":
+    case "bge":
+    case "bltu":
+    case "bgeu": {
+      const [rs1, rs2, offset] = args;
+      const a = getReg(rs1), b = getReg(rs2), i = parseImm(offset);
+      const cond = {
+        beq: a === b,
+        bne: a !== b,
+        blt: a < b,
+        bge: a >= b,
+        bltu: (a >>> 0) < (b >>> 0),
+        bgeu: (a >>> 0) >= (b >>> 0),
+      }[op];
+      if (cond) return PC + i;
       break;
     }
-    case "bne": {
-      const [rs, rt, offset] = operands;
-      if (registers[rs] !== registers[rt]) {
-        return PC + parseInt(offset); 
-      }
+
+    // Tipo U
+    case "lui": {
+      const [rd, imm] = args;
+      setReg(rd, parseImm(imm) << 12);
       break;
     }
-    default: {
-      console.error("Unsupported operation:", op);
+    case "auipc": {
+      const [rd, imm] = args;
+      setReg(rd, PC + (parseImm(imm) << 12));
       break;
     }
+
+    // Tipo J
+    case "jal": {
+      const [rd, offset] = args;
+      setReg(rd, PC + 1);
+      return PC + parseImm(offset);
+    }
+    case "jalr": {
+      const [rd, rs1, imm] = args;
+      const target = (getReg(rs1) + parseImm(imm)) & ~1;
+      setReg(rd, PC + 1);
+      return target;
+    }
+
+    case "nop":
+      break;
+
+    default:
+      console.error("Unsupported instruction:", instruction);
   }
+
+  return PC + 1; // avanzar una línea en la lista de instrucciones
 }
 
 export default MIPS;
