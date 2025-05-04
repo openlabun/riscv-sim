@@ -20,42 +20,21 @@ const config = {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        border: "E2E8F0",
+        background: "FFFFFF",
+        foreground: "1E1E1E",
         primary: {
           DEFAULT: "#2D3F8E", // RISC-V navy blue
-          foreground: "hsl(var(--primary-foreground))",
+          foreground: "#FFFFFF",
         },
         secondary: {
           DEFAULT: "#F2C94C", // RISC-V gold
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
+          foreground: "#000000",
+        }
       },
       borderRadius: {
-        lg: "var(--radius)",
+        DEFAULT: "0.5rem",
+        lg: "0.75rem",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
