@@ -1,0 +1,10 @@
+# Simple RISC-V test program
+addi x1, x0, 10      # Set x1 = 10
+addi x2, x0, 20      # Set x2 = 20
+add x3, x1, x2       # x3 = x1 + x2 (30)
+sw x3, 0(x2)         # Store x3 at memory address in x2
+lw x4, 0(x2)         # Load from memory address in x2 to x4
+sub x5, x4, x1       # x5 = x4 - x1 (20)
+beq x5, x2, 8        # Branch if x5 equals x2
+addi x6, x0, 100     # This should execute
+addi x7, x0, 200     # This should execute
