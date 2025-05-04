@@ -105,6 +105,8 @@ const MIPS = () => {
     setHistory([]);
     setRegisters(initialRegisters);
     setMemory(initialMemory);
+    setHighlightedAddrs([]);
+    setHighlightedRegs([]);
   };
 
   return (
