@@ -77,3 +77,37 @@
     background-color: #2d95df;
 }
 
+.tabs {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .tab-button {
+    background-color: #f4f4f4;
+    border: 1px solid #47a7be;
+    color: #333;
+    padding: 6px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    min-width: 2rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .tab-button:hover {
+    background-color: #e0f7fb;
+  }
+  
+  .tab-button.active {
+    background-color: #47a7be;
+    color: white;
+    font-weight: 600;
+  }
+  
+

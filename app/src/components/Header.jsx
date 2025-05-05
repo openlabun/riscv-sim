@@ -16,7 +16,7 @@ const Header = () => {
                 <line x1="15" y1="19" x2="15" y2="22" stroke="#f8f8f8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></line>
                 <line x1="19" y1="9" x2="22" y2="9" stroke="#f8f8f8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></line>
             </svg>
-            <h1 className='titleHeader'>MIPS Visual Simulator</h1>
+            <h1 className='titleHeader'>RISC-V Visual Simulator</h1>
         </header>
     );
 };
