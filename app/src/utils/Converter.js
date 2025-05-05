@@ -133,111 +133,6 @@ export function translateInstructionToHex(instruction) {
     //return "0x" + hexInstruction;
     return hexInstruction;
 }
-/*
-export function translateInstructionToMIPS(hexInstruction) {
-    const opcodeMap = {
-        "0110011": {  // R-type (funct3 y funct7)
-            "000": "add", 
-            "001": "sll", 
-            "010": "slt", 
-            "011": "sra", 
-            "100": "srl", 
-            "101": "sub", 
-            "110": "xor", 
-            "111": "or"
-        },
-        "0000011": "lw",     // I-type
-        "0100011": "sw",     // S-type
-        "1101111": "jal",    // J-type
-        "1100111": "jalr",   // I-type
-        "0010011": {         // I-type
-            "000": "addi",
-            "111": "andi",
-            "110": "ori",
-            "100": "xori",
-            "010": "slti"
-        },
-        "0001000": "beq",    // B-type
-        "0001010": "bne",    // B-type
-        "0110111": "lui",    // U-type
-        "0010111": "auipc"   // U-type
-    };
-
-    const regMap = {
-        "00000": "zero", "00001": "at",  "00010": "v0",  "00011": "v1",
-        "00100": "a0",   "00101": "a1",  "00110": "a2",  "00111": "a3",
-        "01000": "t0",   "01001": "t1",  "01010": "t2", "01011": "t3",
-        "01100": "t4",  "01101": "t5", "01110": "t6", "01111": "t7",
-        "10000": "s0",  "10001": "s1", "10010": "s2", "10011": "s3",
-        "10100": "s4",  "10101": "s5", "10110": "s6", "10111": "s7",
-        "11000": "t8",  "11001": "t9", "11010": "k0", "11011": "k1",
-        "11100": "gp",  "11101": "sp", "11110": "fp", "11111": "ra",
-    };
-
-    // Convierte la instrucción hexadecimal a binario
-    const binaryInstruction = hexToBinary(hexInstruction);
-    
-
-    const opcode = binaryInstruction.slice(25, 32);  // Últimos 7 bits son el opcode
-    const funct3 = binaryInstruction.slice(17, 20);  // bits 17-19 para funct3
-    const funct7 = binaryInstruction.slice(0, 7);    // bits 0-6 para funct7
-    
-    const rs1Bin = binaryInstruction.slice(12, 17);  // bits 12-16 para rs1
-    const rs2Bin = binaryInstruction.slice(7, 12);   // bits 7-11 para rs2
-    const rdBin = binaryInstruction.slice(20, 25);   // bits 20-24 para rd
-    const imm = parseInt(binaryInstruction.slice(20, 32), 2);  // Inmediato de 12 bits (solo para I, S, B, U)
-
-    const rs1 = regMap[rs1Bin] || "x?(?)";
-    const rs2 = regMap[rs2Bin] || "x?(?)";
-    const rd = regMap[rdBin] || "x?(?)";
-
-    let mipsInstruction = "";
-
-    const opEntry = opcodeMap[opcode];
-    if (!opEntry) return "Unknown or unsupported opcode";
-
-    if (opcode === "0110011") {
-        // R-type (funct3 y funct7)
-        const instr = opEntry[funct3];
-        if (instr) {
-            mipsInstruction = `${instr} ${rd} ${rs1} ${rs2}`;
-        } else {
-            return "Unknown R-type instruction";
-        }
-    } else if (opcode === "0010011") {
-        // I-type (addi, andi, ori, xori, slti)
-        const instr = opEntry[funct3];
-        if (instr) {
-            mipsInstruction = `${instr} ${rd} ${rs1} ${imm}`;
-        } else {
-            return "Unknown I-type instruction";
-        }
-    } else if (opcode === "0000011") {
-        // I-type (lw)
-        mipsInstruction = `${opEntry} ${rd} ${rs1} ${imm}`;
-    } else if (opcode === "0100011") {
-        // S-type (sw)
-        mipsInstruction = `${opEntry} ${rs2} ${rs1} ${imm}`;
-    } else if (opcode === "1101111") {
-        // J-type (jal)
-        mipsInstruction = `${opEntry} ${imm}`;
-    } else if (opcode === "1100111") {
-        // I-type (jalr)
-        mipsInstruction = `${opEntry} ${rd} ${rs1} ${imm}`;
-    } else if (opcode === "0001000" || opcode === "0001010") {
-        // B-type (beq, bne)
-        mipsInstruction = `${opEntry} ${rs1} ${rs2} ${imm}`;
-    } else if (opcode === "0110111" || opcode === "0010111") {
-        // U-type (lui, auipc)
-        mipsInstruction = `${opEntry} ${rd} ${imm}`;
-    } else {
-        return "Unsupported or unknown instruction";
-    }
-
-    console.log("Instruction Method 2",binToTextRISC(hexInstruction)); // Para debug
-    return binToTextRISC(hexInstruction);
-}
- */
 // Helper para convertir de hexadecimal a binario
 function hexToBinary(hex) {
     return parseInt(hex, 16).toString(2).padStart(32, '0');
@@ -423,3 +318,161 @@ export function translateInstructionToMIPS(instruction) {
 
     return 'Instrucción no soportada';
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+export function translateInstructionToMIPS(hexInstruction) {
+    const opcodeMap = {
+        "0110011": {  // R-type (funct3 y funct7)
+            "000": "add", 
+            "001": "sll", 
+            "010": "slt", 
+            "011": "sra", 
+            "100": "srl", 
+            "101": "sub", 
+            "110": "xor", 
+            "111": "or"
+        },
+        "0000011": "lw",     // I-type
+        "0100011": "sw",     // S-type
+        "1101111": "jal",    // J-type
+        "1100111": "jalr",   // I-type
+        "0010011": {         // I-type
+            "000": "addi",
+            "111": "andi",
+            "110": "ori",
+            "100": "xori",
+            "010": "slti"
+        },
+        "0001000": "beq",    // B-type
+        "0001010": "bne",    // B-type
+        "0110111": "lui",    // U-type
+        "0010111": "auipc"   // U-type
+    };
+
+    const regMap = {
+        "00000": "zero", "00001": "at",  "00010": "v0",  "00011": "v1",
+        "00100": "a0",   "00101": "a1",  "00110": "a2",  "00111": "a3",
+        "01000": "t0",   "01001": "t1",  "01010": "t2", "01011": "t3",
+        "01100": "t4",  "01101": "t5", "01110": "t6", "01111": "t7",
+        "10000": "s0",  "10001": "s1", "10010": "s2", "10011": "s3",
+        "10100": "s4",  "10101": "s5", "10110": "s6", "10111": "s7",
+        "11000": "t8",  "11001": "t9", "11010": "k0", "11011": "k1",
+        "11100": "gp",  "11101": "sp", "11110": "fp", "11111": "ra",
+    };
+
+    // Convierte la instrucción hexadecimal a binario
+    const binaryInstruction = hexToBinary(hexInstruction);
+    
+
+    const opcode = binaryInstruction.slice(25, 32);  // Últimos 7 bits son el opcode
+    const funct3 = binaryInstruction.slice(17, 20);  // bits 17-19 para funct3
+    const funct7 = binaryInstruction.slice(0, 7);    // bits 0-6 para funct7
+    
+    const rs1Bin = binaryInstruction.slice(12, 17);  // bits 12-16 para rs1
+    const rs2Bin = binaryInstruction.slice(7, 12);   // bits 7-11 para rs2
+    const rdBin = binaryInstruction.slice(20, 25);   // bits 20-24 para rd
+    const imm = parseInt(binaryInstruction.slice(20, 32), 2);  // Inmediato de 12 bits (solo para I, S, B, U)
+
+    const rs1 = regMap[rs1Bin] || "x?(?)";
+    const rs2 = regMap[rs2Bin] || "x?(?)";
+    const rd = regMap[rdBin] || "x?(?)";
+
+    let mipsInstruction = "";
+
+    const opEntry = opcodeMap[opcode];
+    if (!opEntry) return "Unknown or unsupported opcode";
+
+    if (opcode === "0110011") {
+        // R-type (funct3 y funct7)
+        const instr = opEntry[funct3];
+        if (instr) {
+            mipsInstruction = `${instr} ${rd} ${rs1} ${rs2}`;
+        } else {
+            return "Unknown R-type instruction";
+        }
+    } else if (opcode === "0010011") {
+        // I-type (addi, andi, ori, xori, slti)
+        const instr = opEntry[funct3];
+        if (instr) {
+            mipsInstruction = `${instr} ${rd} ${rs1} ${imm}`;
+        } else {
+            return "Unknown I-type instruction";
+        }
+    } else if (opcode === "0000011") {
+        // I-type (lw)
+        mipsInstruction = `${opEntry} ${rd} ${rs1} ${imm}`;
+    } else if (opcode === "0100011") {
+        // S-type (sw)
+        mipsInstruction = `${opEntry} ${rs2} ${rs1} ${imm}`;
+    } else if (opcode === "1101111") {
+        // J-type (jal)
+        mipsInstruction = `${opEntry} ${imm}`;
+    } else if (opcode === "1100111") {
+        // I-type (jalr)
+        mipsInstruction = `${opEntry} ${rd} ${rs1} ${imm}`;
+    } else if (opcode === "0001000" || opcode === "0001010") {
+        // B-type (beq, bne)
+        mipsInstruction = `${opEntry} ${rs1} ${rs2} ${imm}`;
+    } else if (opcode === "0110111" || opcode === "0010111") {
+        // U-type (lui, auipc)
+        mipsInstruction = `${opEntry} ${rd} ${imm}`;
+    } else {
+        return "Unsupported or unknown instruction";
+    }
+
+    console.log("Instruction Method 2",binToTextRISC(hexInstruction)); // Para debug
+    return binToTextRISC(hexInstruction);
+}
+ */
