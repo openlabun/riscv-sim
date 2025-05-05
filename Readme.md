@@ -1,4 +1,4 @@
-RISCV Visual Simulator (Single Cycle)
+RISCV Visual Simulator
 
 A javascript based RISCV simulator. 
 
@@ -7,7 +7,6 @@ To run on dev mode, run the following command
  cd app
  pnpm install
  pnpm run dev 
->>>>>>> 82827a3 (Add README.md with setup instructions for RISCV Visual Simulator)
 ```
 
 To deply the app, run the following command
