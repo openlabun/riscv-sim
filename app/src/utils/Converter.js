@@ -275,7 +275,10 @@ export function translateInstructionToMIPS(instruction) {
     const reg1 = regMap[rs1];
     const reg2 = regMap[rs2];
     const regDest = regMap[rd];
-
+    console.log(`Binary: ${binary}`);
+    console.log(`opcode: ${opcode}`);
+    console.log(`funct3: ${funct3}`);
+    console.log(`funct3 decimal: ${parseInt(funct3, 2)}`);
     // Verificación simple para asegurarnos de que los registros son válidos
     if (!reg1 || !reg2 || !regDest) {
         return 'Error: Registros no encontrados';
