@@ -1,23 +1,32 @@
 import React from 'react';
 import '../styles/Tables.css';
 
-const REGISTERtable = ({ registers}) => {
+const REGISTERtable = ({ registers = {}, readRegs = [], writeRegs = [] }) => {
   return (
-    <div id="simulation-tables" className='tables-container'>
-      <table id="registerTable" className='REGISTERtable'>
+    <div className="tables-container">
+      <table id="registerTable" className="REGISTERtable">
         <thead>
-          <tr className='values'>
+          <tr>
             <th>Register</th>
             <th>Value</th>
           </tr>
         </thead>
         <tbody>
-          {Object.keys(registers).map((reg) => (
-            <tr key={reg} className='values'>
-              <td>{reg}</td>
-              <td>{`0x${registers[reg].toString(16).toUpperCase()}`}</td>
-            </tr>
-          ))}
+          {Object.entries(registers).map(([reg, val]) => {
+            const isRead = readRegs.includes(reg);
+            const isWrite = writeRegs.includes(reg);
+            const className = isWrite
+              ? 'write-row'
+              : isRead
+              ? 'read-row'
+              : '';
+            return (
+              <tr key={reg} className={className}>
+                <td>{reg}</td>
+                <td>{`0x${(val||0).toString(16).toUpperCase()}`}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

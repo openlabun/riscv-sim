@@ -6,7 +6,7 @@
     margin: 2rem;
 }
 
-.bottom-section > div {
+.bottom-section>div {
     flex: 1;
 }
 
@@ -56,4 +56,17 @@ table tr:hover {
     display: table;
     width: 100%;
     table-layout: fixed;
+}
+
+.read-row {
+    background-color: #cce5ff !important;
+}
+
+.write-row {
+    background-color: #004085 !important;
+    color: white !important;
+}
+
+.write-row td {
+    color: white !important;
 }
