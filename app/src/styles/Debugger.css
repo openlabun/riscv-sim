@@ -54,7 +54,7 @@
     margin-top: 1rem;
     font-size: 1rem;
     color: #333;
-    
+
 
 }
 
@@ -66,4 +66,17 @@
     color: #3a7b8b;
     font-weight: 400;
     border: 2px solid #688288;
+}
+
+.current {
+    text-decoration: underline solid #007bff 2px;
+}
+
+.next {
+    text-decoration: underline solid #6c757d 1px;
+}
+
+#control-buttons img {
+    width: 24px;
+    height: 24px;
 }

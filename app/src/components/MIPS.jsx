@@ -1,4 +1,3 @@
-// MIPS.jsx
 import React, { useState } from "react";
 import Debugger from "./Debugger";
 import DropArea from "./Drop";
@@ -7,363 +6,292 @@ import "../styles/HexSection.css";
 import RAMtable from "./RAMtable";
 import REGISTERtable from "./REGISTERtable";
 
-const initialRegisters = {
-  zero: 0,
-  at: 0,
-  v0: 0,
-  v1: 0,
-  a0: 0,
-  a1: 0,
-  a2: 0,
-  a3: 0,
-  t0: 0,
-  t1: 0,
-  t2: 0,
-  t3: 0,
-  t4: 0,
-  t5: 0,
-  t6: 0,
-  t7: 0,
-  s0: 0,
-  s1: 0,
-  s2: 0,
-  s3: 0,
-  s4: 0,
-  s5: 0,
-  s6: 0,
-  s7: 0,
-  t8: 0,
-  t9: 0,
-  k0: 0,
-  k1: 0,
-  gp: 0,
-  sp: 0,
-  fp: 0,
-  ra: 0,
+const mipsAlias = [
+  "zero",
+  "at",
+  "v0",
+  "v1",
+  "a0",
+  "a1",
+  "a2",
+  "a3",
+  "t0",
+  "t1",
+  "t2",
+  "t3",
+  "t4",
+  "t5",
+  "t6",
+  "t7",
+  "s0",
+  "s1",
+  "s2",
+  "s3",
+  "s4",
+  "s5",
+  "s6",
+  "s7",
+  "t8",
+  "t9",
+  "k0",
+  "k1",
+  "gp",
+  "sp",
+  "fp",
+  "ra",
+];
+const initialRegisters = Object.fromEntries(mipsAlias.map((n) => [n, 0]));
+const initialMemory = {}; // sparse byte store
+
+const regIndex = Object.fromEntries(mipsAlias.map((n, i) => [n, i]));
+for (let i = 0; i < 32; i++) regIndex[`x${i}`] = i;
+const rvToMips = {
+  0: "zero",
+  1: "ra",
+  2: "sp",
+  3: "gp",
+  4: "tp",
+  5: "t0",
+  6: "t1",
+  7: "t2",
+  8: "s0",
+  9: "s1",
+  10: "a0",
+  11: "a1",
+  12: "a2",
+  13: "a3",
+  14: "a4",
+  15: "a5",
+  16: "a6",
+  17: "a7",
+  18: "s2",
+  19: "s3",
+  20: "s4",
+  21: "s5",
+  22: "s6",
+  23: "s7",
+  24: "t8",
+  25: "t9",
+  26: "k0",
+  27: "k1",
+  28: "gp",
+  29: "sp",
+  30: "fp",
+  31: "ra",
+};
+const norm = (r) => {
+  r = r.replace(/^\$/, "");
+  const m = r.match(/^x(\d+)$/i);
+  return m ? rvToMips[+m[1]] : r.toLowerCase();
 };
 
-const initialMemory = Array.from({ length: 32 }).reduce(
-  (acc, curr, i) => ({ ...acc, [i]: 0 }),
-  {}
+function exec(line, R, M, pc) {
+  const t = line.trim().replace(/[,()]/g, " ").split(/\s+/).filter(Boolean);
+  if (!t.length)
+    return { next: pc + 1, read: [], write: [], mRead: [], mWrite: [] };
+  const op = t[0].toLowerCase();
+  const a = t.slice(1).map(norm);
+  const read = [],
+    write = [],
+    mRead = [],
+    mWrite = [];
+  const g = (r) => R[r] ?? 0;
+  const s = (r, v) => {
+    R[r] = v >>> 0;
+  };
+  const mk = (r, t) => (t === "r" ? read.push(r) : write.push(r));
+  let next;
+  switch (op) {
+    case "addi": {
+      const [d, r, i] = a;
+      mk(r, "r");
+      mk(d, "w");
+      s(d, g(r) + Number(i));
+      break;
+    }
+    case "add":
+    case "sub":
+    case "and":
+    case "or":
+    case "slt": {
+      const [d, r1, r2] = a;
+      mk(r1, "r");
+      mk(r2, "r");
+      mk(d, "w");
+      const A = g(r1),
+        B = g(r2);
+      s(
+        d,
+        op === "add"
+          ? A + B
+          : op === "sub"
+          ? A - B
+          : op === "and"
+          ? A & B
+          : op === "or"
+          ? A | B
+          : A < B
+          ? 1
+          : 0
+      );
+      break;
+    }
+    case "lb": {
+      const [d, o, b] = a;
+      mk(b, "r");
+      mk(d, "w");
+      const addr = g(b) + Number(o);
+      mRead.push(addr);
+      const byte = (M[addr] ?? 0) & 0xff;
+      s(d, byte & 0x80 ? byte | 0xffffff00 : byte);
+      break;
+    }
+    case "sb": {
+      const [r, o, b] = a;
+      mk(b, "r");
+      mk(r, "r");
+      const addr = g(b) + Number(o);
+      mWrite.push(addr);
+      M[addr] = g(r) & 0xff;
+      break;
+    }
+    case "beq":
+    case "bne": {
+      const [r1, r2, off] = a;
+      mk(r1, "r");
+      mk(r2, "r");
+      const cond = op === "beq" ? g(r1) === g(r2) : g(r1) !== g(r2);
+      if (cond) next = pc + Number(off);
+      break;
+    }
+    case "j":
+      next = Number(a[0]);
+      break;
+  }
+  return { next: next ?? pc + 1, read, write, mRead, mWrite };
+}
+
+const CodeEditor = ({ code, onChange, hl }) => (
+  <div className="editor-wrapper" style={{ display: "flex", gap: "16px" }}>
+    <textarea
+      className="input-text-area overlay"
+      value={code}
+      onChange={(e) => onChange(e.target.value)}
+    />
+    <pre className="highlight-layer" >
+      {code.split("\n").map((l, i) => (
+        <div
+          key={i}
+          className={
+            i === hl ? "line current" : i === hl + 1 ? "line next" : "line"
+          }
+          style={{textAlign: "left"}}
+        >
+          {l.toLowerCase() || " "}
+        </div>
+      ))}
+    </pre>
+  </div>
 );
 
-const compileMIPS = (assemblyCode) => {
-  const lines = assemblyCode.trim().split("\n");
-  const compiledLines = lines.map((line) => {
-    const trimmed = line.trim();
-    const [op, ...operands] = trimmed.split(" ");
-    let hex = "";
-    switch (op) {
-      case "add":
-        hex = "0x00000020";
-        break;
-      case "sub":
-        hex = "0x00000022";
-        break;
-      case "slt":
-        hex = "0x0000002A";
-        break;
-      case "and":
-        hex = "0x00000024";
-        break;
-      case "or":
-        hex = "0x00000025";
-        break;
-      case "addi":
-        hex = "0x20000000";
-        break;
-      case "lw":
-        hex = "0x8C000000";
-        break;
-      case "sw":
-        hex = "0xAC000000";
-        break;
-      case "j":
-        hex = "0x08000000";
-        break;
-      case "beq":
-        hex = "0x10000000";
-        break;
-      case "bne":
-        hex = "0x14000000";
-        break;
-      default:
-        hex = "0x00000000";
-        break;
-    }
-    return `${trimmed} // ${hex}`;
-  });
-  return compiledLines;
-};
+export default function MIPS() {
+  const [src, setSrc] = useState("");
+  const [pc, setPC] = useState(0);
+  const [hl, setHL] = useState(-1);
 
-const MIPS = () => {
-  const [mipsInput, setMipsInput] = useState("");
-  const [hexInput, setHexInput] = useState("");
-  const [registers, setRegisters] = useState(initialRegisters);
-  const [memory, setMemory] = useState(initialMemory);
-  const [PC, setPC] = useState(0);
-  const [history, setHistory] = useState([]);
+  const [R, setR] = useState({ ...initialRegisters });
+  const [M, setM] = useState({ ...initialMemory });
 
-  // Si existe código compilado se utiliza la parte izquierda de cada línea; de lo contrario se utiliza mipsInput
-  const instructions = hexInput
-    ? hexInput.split("\n").map((line) => line.split("//")[0].trim())
-    : mipsInput.trim().split("\n");
-  const currentInstruction = instructions[PC] || "";
+  const [reads, setReads] = useState([]);
+  const [writes, setWrites] = useState([]);
+  const [mReads, setMReads] = useState([]);
+  const [mWrites, setMWrites] = useState([]);
 
-  const updateTables = (newRegisters, newMemory) => {
-    setRegisters(newRegisters);
-    setMemory(newMemory);
-  };
+  const [hist, setHist] = useState([]);
 
-  const simulateMIPS = () => {
-    document
-      .getElementById("simulation-tables")
-      .scrollIntoView({ behavior: "smooth" });
-
-    // Se compila el código MIPS y se actualiza el estado hexInput
-    const compiledHex = compileMIPS(mipsInput);
-    setHexInput(compiledHex.join("\n"));
-    // Se extraen las instrucciones (ignorando la parte de comentario)
-    const compiledInstructions = compiledHex.map((line) =>
-      line.split("//")[0].trim()
-    );
-
-    resetMIPS();
-    const newRegisters = { ...initialRegisters };
-    const newMemory = { ...initialMemory };
-    let pc = 0;
-
-    while (pc < compiledInstructions.length) {
-      const newPC = executeMIPSInstruction(
-        compiledInstructions[pc],
-        newRegisters,
-        newMemory,
-        pc
-      );
-      if (newPC !== undefined) {
-        pc = newPC;
-      } else {
-        pc += 1;
-      }
-    }
-    updateTables(newRegisters, newMemory);
-  };
-
-  const stepMIPS = () => {
-    const instructionLines = hexInput
-      ? hexInput.split("\n").map((line) => line.split("//")[0].trim())
-      : mipsInput.trim().split("\n");
-    if (PC >= instructionLines.length) return;
-    setHistory([
-      ...history,
-      { PC, registers: { ...registers }, memory: { ...memory } },
-    ]);
-    const newRegisters = { ...registers };
-    const newMemory = { ...memory };
-    const newPC = executeMIPSInstruction(
-      instructionLines[PC],
-      newRegisters,
-      newMemory,
-      PC
-    );
-    if (newPC !== undefined) {
-      setPC(newPC);
-    } else {
-      setPC(PC + 1);
-    }
-    updateTables(newRegisters, newMemory);
-  };
-
-  const stepBackMIPS = () => {
-    if (PC === 0) return;
-    const lastHistoryIndex = history.length - 1;
-    const lastState = history[lastHistoryIndex];
-    if (lastState) {
-      setPC(lastState.PC);
-      setRegisters(lastState.registers);
-      setMemory(lastState.memory);
-      setHistory(history.slice(0, lastHistoryIndex));
-    }
-  };
-
-  const resetMIPS = () => {
+  const reset = () => {
+    setR({ ...initialRegisters });
+    setM({ ...initialMemory });
     setPC(0);
-    setHistory([]);
-    setRegisters(initialRegisters);
-    setMemory(initialMemory);
+    setHL(-1);
+    setReads([]);
+    setWrites([]);
+    setMReads([]);
+    setMWrites([]);
+    setHist([]);
+  };
+
+  const step = () => {
+    const lines = src.split("\n");
+    if (pc >= lines.length) return;
+
+    const newR = { ...R };
+    const newM = { ...M };
+    const { next, read, write, mRead, mWrite } = exec(
+      lines[pc],
+      newR,
+      newM,
+      pc
+    );
+
+    setHist((h) => [
+      ...h,
+      {
+        pc: next,
+        hl: pc,
+        R: newR,
+        M: newM,
+        reads: read,
+        writes: write,
+        mReads: mRead,
+        mWrites: mWrite,
+      },
+    ]);
+
+    setR(newR);
+    setM(newM);
+    setReads(read);
+    setWrites(write);
+    setMReads(mRead);
+    setMWrites(mWrite);
+    setHL(pc);
+    setPC(next);
+  };
+
+  const back = () => {
+    setHist((h) => {
+      if (!h.length) return h;
+      const last = h[h.length - 1];
+      setR(last.R);
+      setM(last.M);
+      setPC(last.pc);
+      setHL(last.hl);
+      setReads(last.reads);
+      setWrites(last.writes);
+      setMReads(last.mReads);
+      setMWrites(last.mWrites);
+      return h.slice(0, -1);
+    });
   };
 
   return (
     <div>
       <div className="row-container">
-        <DropArea setMipsInput={setMipsInput} setHexInput={setHexInput} />
-        <textarea
-          id="mips-input"
-          className="input-text-area"
-          placeholder="Ingrese las instrucciones MIPS aquí..."
-          value={mipsInput}
-          onChange={(e) => setMipsInput(e.target.value)}
-        />
-        <button
-          id="simulate-mips-button"
-          className="btnSimulate"
-          onClick={simulateMIPS}
-        >
-          Simular MIPS
-        </button>
+        <DropArea setMipsInput={setSrc} setHexInput={() => {}} />
+        <CodeEditor code={src} onChange={setSrc} hl={hl} />
       </div>
 
       <div className="bottom-section">
-        <RAMtable memory={memory} />
-        <div
-          style={{ width: "100%", maxWidth: "444px" }}
-          id="simulation-tables"
-        >
-          <Debugger
-            PC={PC}
-            simulateMIPS={simulateMIPS}
-            mipsInput={mipsInput}
-            stepMIPS={stepMIPS}
-            stepBackMIPS={stepBackMIPS}
-            resetMIPS={resetMIPS}
-          />
-          {hexInput && (
-            <div className="compiled-code">
-              <div className="compiled-header">
-                <h3>Código Hex compilado</h3>
-                <div className="compiled-actions">
-                  <button
-                    className="copy-button"
-                    onClick={() => navigator.clipboard.writeText(hexInput)}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect
-                        x="9"
-                        y="9"
-                        width="13"
-                        height="13"
-                        rx="2"
-                        ry="2"
-                      ></rect>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                    Copiar
-                  </button>
-                </div>
-              </div>
-              <div className="compiled-content">
-                {hexInput.split("\n").map((line, index) => {
-                  const parts = line.split("//");
-                  const hex = parts[1].trim();
-                  const instruction = parts[0].trim();
-
-                  return (
-                    <div key={index} className="compiled-line">
-                      <p>{instruction}</p>
-                      <div className="compiled-line-points"></div>
-                      <p>{hex}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <REGISTERtable registers={registers} />
+        <RAMtable memory={M} readAddrs={mReads} writeAddrs={mWrites} />
+        <Debugger
+          PC={hl}
+          instructions={src.split("\n")}
+          stepMIPS={step}
+          stepBackMIPS={back}
+          resetMIPS={reset}
+        />
+        <REGISTERtable registers={R} readRegs={reads} writeRegs={writes} />
       </div>
     </div>
   );
-};
-
-/**
- * Función que ejecuta una instrucción MIPS.
- * Se extrae el opcode y los operandos (suponiendo que vienen separados por espacios).
- */
-function executeMIPSInstruction(instruction, registers, memory, PC) {
-  const parts = instruction.split(" ");
-  const op = parts[0];
-  const operands = parts.slice(1);
-  switch (op) {
-    case "add": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = registers[rs] + registers[rt];
-      break;
-    }
-    case "sub": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = registers[rs] - registers[rt];
-      break;
-    }
-    case "slt": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = registers[rs] < registers[rt] ? 1 : 0;
-      break;
-    }
-    case "and": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = registers[rs] & registers[rt];
-      break;
-    }
-    case "or": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = registers[rs] | registers[rt];
-      break;
-    }
-    case "addi": {
-      const [rd, rs, immediate] = operands;
-      registers[rd] = registers[rs] + parseInt(immediate);
-      break;
-    }
-    case "lw": {
-      const [rt, rs, offset] = operands;
-      const address = registers[rs] + parseInt(offset);
-      if (memory.hasOwnProperty(address)) {
-        registers[rt] = memory[address];
-      } else {
-        console.error("Dirección de memoria no encontrada:", address);
-      }
-      break;
-    }
-    case "sw": {
-      const [rt, rs, offset] = operands;
-      const address = registers[rs] + parseInt(offset);
-      memory[address] = registers[rt];
-      break;
-    }
-    case "j": {
-      const [address] = operands;
-      return parseInt(address);
-    }
-    case "beq": {
-      const [rs, rt, offset] = operands;
-      if (registers[rs] === registers[rt]) {
-        return PC + parseInt(offset);
-      }
-      break;
-    }
-    case "bne": {
-      const [rs, rt, offset] = operands;
-      if (registers[rs] !== registers[rt]) {
-        return PC + parseInt(offset);
-      }
-      break;
-    }
-    default: {
-      console.error("Operación no soportada:", op);
-      break;
-    }
-  }
 }
-
-export default MIPS;

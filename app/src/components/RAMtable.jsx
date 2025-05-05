@@ -1,25 +1,35 @@
 import React from 'react';
 import '../styles/Tables.css';
 
-const RAMtable = ({ memory }) => {
+const RAMtable = ({ memory = {}, readAddrs = [], writeAddrs = [] }) => {
   return (
-    <div id="simulation-tables" className='tables-container'>
-      <table id="ramTable" className='RAMtable' >
+    <div className="tables-container">
+      <table id="ramTable" className="RAMtable">
         <thead>
-          <tr className='values'>
+          <tr>
             <th>Address</th>
             <th>Value</th>
           </tr>
         </thead>
         <tbody>
-          {Object.keys(memory)
-            .filter(addr => parseInt(addr) <= 0xF)
-            .map((addr) => (
-              <tr key={addr} className='values'>
-                <td>{`0x${parseInt(addr).toString(16).toUpperCase()}`}</td>
-                <td>{`0x${memory[addr].toString(16).toUpperCase()}`}</td>
-              </tr>
-            ))}
+          {Object.entries(memory)
+            .filter(([addr]) => parseInt(addr, 10) <= 0xF)
+            .map(([addr, val]) => {
+              const numAddr = parseInt(addr, 10);
+              const isRead = readAddrs.includes(numAddr);
+              const isWrite = writeAddrs.includes(numAddr);
+              const className = isWrite
+                ? 'write-row'
+                : isRead
+                ? 'read-row'
+                : '';
+              return (
+                <tr key={addr} className={className}>
+                  <td>{`0x${numAddr.toString(16).toUpperCase()}`}</td>
+                  <td>{`0x${val.toString(16).toUpperCase()}`}</td>
+                </tr>
+              );
+            })}
         </tbody>
       </table>
     </div>
