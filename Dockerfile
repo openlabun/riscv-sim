@@ -1,36 +1,40 @@
-# Utiliza una imagen base de Node.js 18 para construir la aplicación
-FROM node:22 AS build
+# Etapa 1: Construcción
+FROM node:22 AS builder
 
-# Establece el directorio de trabajo
+# Habilita pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
-# Copia los archivos de la aplicación al contenedor
-COPY ./app/package.json ./app/package-lock.json ./
-COPY ./app/ ./
+# Copia solo lo necesario para instalar dependencias primero (cache optimizada)
+COPY package.json pnpm-lock.yaml ./
 
-# Elimina el archivo package-lock.json y la carpeta node_modules si existen
-RUN rm -rf node_modules package-lock.json
+# Instala dependencias
+RUN pnpm install --frozen-lockfile
 
-# Instala las dependencias
-RUN npm install
+# Copia el resto del proyecto
+COPY . .
 
-# Construye la aplicación
-RUN npm run build
+# Compila la aplicación
+RUN pnpm build
 
-# Utiliza una imagen base de Node.js 18 para servir la aplicación
-FROM node:22
+# Etapa 2: Producción
+FROM node:22 AS runner
 
-# Establece el directorio de trabajo
+# Habilita pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
-# Copia los archivos construidos al directorio de trabajo
-COPY --from=build /app/dist /app/build
+# Copia solo lo necesario para ejecutar
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
 
-# Instala un servidor estático para servir la aplicación
-RUN npm install -g serve
-
-# Expone el puerto 3000
+# Expone el puerto por defecto de Next.js
 EXPOSE 3000
 
-# Comando para iniciar el servidor estático
-CMD ["serve", "-s", "build", "-l", "3000"]
+# Comando para iniciar Next.js en producción
+CMD ["pnpm", "start"]
