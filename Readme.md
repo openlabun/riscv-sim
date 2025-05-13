@@ -9,7 +9,8 @@ To run on dev mode, run the following command
  pnpm run dev 
 ```
 
+
 To deply the app, run the following command
 ```bash
- docker build -t riscvsim .
- docker run -d -it -p 80:3000 --restart unless-stopped --name riscvsim-app riscvsim
+ docker build -t riscvsimi .
+ docker run -d -it -p 5034:3000 --restart unless-stopped --name riscvsim riscvsimi
